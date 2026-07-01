@@ -19,7 +19,7 @@ FPS = 30
 
 FIELD_IMAGE = IMAGES_DIR / "field_day_480x320.png"
 SIMON_DIR = SPRITES_DIR / "simon"
-SIMON_SOUND = SOUNDS_DIR / "simon_sing_lalala.wav"
+SIMON_SOUND = SOUNDS_DIR / "touch_demo.wav"
 
 WINDOW_TITLE = "sprunkies - Simon"
 SOUND_PLAYER = os.environ.get("SPRUNKIES_SOUND_PLAYER", "pygame").lower()

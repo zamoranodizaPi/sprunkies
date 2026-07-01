@@ -34,7 +34,6 @@ class SimonFieldScene:
         self.mode = "idle"
         self.mode_until = 0.0
         self.next_blink = self._schedule_blink()
-        self.next_auto_song = time.monotonic() + 4.0
         self.notes: list[Note] = []
         self.sound_process: subprocess.Popen[bytes] | None = None
         self.clouds = [
@@ -64,19 +63,14 @@ class SimonFieldScene:
                 self._handle_touch(event.pos)
 
     def _handle_touch(self, pos: tuple[int, int]) -> None:
-        if self.simon_rect.collidepoint(pos):
-            self._start_singing()
-        else:
-            self.mode = "happy"
-            self.mode_until = time.monotonic() + 0.9
-            self._spawn_notes(pos[0], pos[1], count=2)
+        self._start_singing(pos)
 
-    def _start_singing(self) -> None:
+    def _start_singing(self, pos: tuple[int, int] | None = None) -> None:
         now = time.monotonic()
         self.mode = "sing"
         self.mode_until = now + max(1.8, self._play_sing_sound())
-        self.next_auto_song = self.mode_until + random.uniform(5.0, 8.0)
-        self._spawn_notes(self.simon_rect.centerx, self.simon_rect.top + 40, count=6)
+        note_x, note_y = pos if pos is not None else (self.simon_rect.centerx, self.simon_rect.top + 40)
+        self._spawn_notes(note_x, note_y, count=6)
 
     def _play_sing_sound(self) -> float:
         if config.SOUND_PLAYER == "aplay":
@@ -125,8 +119,6 @@ class SimonFieldScene:
 
         if self.mode == "sing" and random.random() < 0.18:
             self._spawn_notes(self.simon_rect.centerx + random.randint(-28, 28), self.simon_rect.top + 44, count=1)
-        elif self.mode == "idle" and now >= self.next_auto_song:
-            self._start_singing()
 
         for cloud in self.clouds:
             cloud["x"] += cloud["speed"] * dt

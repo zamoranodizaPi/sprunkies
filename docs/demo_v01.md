@@ -18,7 +18,7 @@ La demo busca estos archivos:
 - `assets/sprites/simon/sing1.png`
 - `assets/sprites/simon/sing2.png`
 - `assets/sprites/simon/happy.png`
-- `assets/sounds/simon_sing_lalala.wav`
+- `assets/sounds/touch_demo.wav`
 
 Tambien acepta variantes como `simon_idle.png` o `idle_01.png`.
 
@@ -26,8 +26,7 @@ Si algun asset no existe, la demo usa un fallback dibujado por codigo para que l
 
 ## Interacciones
 
-- Tocar/clickear a Simon: Simon canta, cambia animacion y salen notas musicales.
-- Tocar/clickear fuera de Simon: Simon hace una reaccion happy corta.
+- Tocar/clickear cualquier parte de la pantalla: se reproduce `touch_demo.wav`, Simon cambia animacion y salen notas musicales.
 - Tecla `ESC`: salir.
 - `Ctrl+C` desde terminal: salir.
 
