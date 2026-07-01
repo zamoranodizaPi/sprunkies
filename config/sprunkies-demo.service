@@ -12,6 +12,7 @@ WorkingDirectory=/home/pi/sprunkies
 Environment=HOME=/home/pi
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/pi/.Xauthority
+Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=SDL_VIDEODRIVER=x11
 ExecStartPre=/bin/sleep 5
 ExecStart=/home/pi/sprunkies/scripts/run_demo.sh
