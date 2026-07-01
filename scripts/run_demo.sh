@@ -14,4 +14,10 @@ fi
 
 . "$VENV_DIR/bin/activate"
 cd "$PROJECT_DIR"
+
+if [ -z "${DISPLAY:-}" ] && [ -e "$HOME/.Xauthority" ]; then
+  export DISPLAY=:0
+  export XAUTHORITY="$HOME/.Xauthority"
+fi
+
 exec python src/main.py
