@@ -39,7 +39,8 @@ def init_audio() -> None:
 
 def main() -> int:
     os.chdir(config.PROJECT_ROOT)
-    pygame.init()
+    pygame.display.init()
+    pygame.font.init()
     init_audio()
     signal.signal(signal.SIGINT, lambda _sig, _frame: sys.exit(0))
 
