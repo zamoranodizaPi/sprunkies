@@ -23,6 +23,12 @@ fi
 
 sudo -u pi "$VENV_DIR/bin/pip" install -r "$PROJECT_DIR/requirements.txt"
 
+if command -v amixer >/dev/null 2>&1; then
+  amixer sset Master 100% unmute >/dev/null 2>&1 || true
+  amixer -c 1 sset Headphone 100% unmute >/dev/null 2>&1 || true
+  alsactl store >/dev/null 2>&1 || true
+fi
+
 install -m 0644 "$SERVICE_SOURCE" "$SERVICE_TARGET"
 systemctl daemon-reload
 systemctl enable "$SERVICE_NAME"
