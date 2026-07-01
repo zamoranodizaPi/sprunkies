@@ -1,6 +1,7 @@
 .agents/
+__pycache__/
+*.pyc
 
 # Local editor and OS noise
 .DS_Store
 Thumbs.db
-

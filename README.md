@@ -48,4 +48,11 @@ sh scripts/check_touch.sh
 sh scripts/backup_config.sh
 ```
 
+Para mostrar a Simon en la pantalla TFT ya expuesta como framebuffer:
+
+```sh
+cd ~/sprunkies
+sh scripts/show_simon.sh /dev/fb1
+```
+
 Antes de modificar `/boot/firmware/config.txt`, revisar `docs/display_touch_setup.md` y hacer backup.

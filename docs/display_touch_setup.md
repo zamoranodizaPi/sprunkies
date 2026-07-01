@@ -138,8 +138,20 @@ Pendiente ejecutar en la Raspberry Pi:
 
 - `scripts/check_system.sh`
 - `scripts/check_touch.sh`
+- `scripts/show_simon.sh /dev/fb1`
 - prueba visual del escritorio en TFT
 - prueba tactil sobre el escritorio
+
+## Pantalla inicial de Simon
+
+Cuando `/dev/fb1` existe, Simon puede mostrarse directamente en el framebuffer:
+
+```sh
+cd ~/sprunkies
+sh scripts/show_simon.sh /dev/fb1
+```
+
+Esto no arranca todavia el juego. Solo dibuja el personaje inicial en pantalla negra para validar salida visual del proyecto.
 
 ## Revertir cambios si algo sale mal
 
