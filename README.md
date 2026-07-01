@@ -92,3 +92,26 @@ Archivos principales:
 - `src/scene_simon_field.py`
 - `scripts/run_demo.sh`
 - `docs/demo_v01.md`
+
+## Arranque automatico
+
+Para instalar la demo como servicio systemd en la Raspberry:
+
+```sh
+cd ~/sprunkies
+sudo ./scripts/install_demo_service.sh
+```
+
+Servicio instalado:
+
+```text
+sprunkies-demo.service
+```
+
+Comandos utiles:
+
+```sh
+systemctl status sprunkies-demo.service
+sudo systemctl restart sprunkies-demo.service
+sudo ./scripts/stop_demo_service.sh
+```

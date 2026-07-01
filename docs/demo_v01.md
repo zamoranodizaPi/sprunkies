@@ -43,3 +43,21 @@ Si algun asset no existe, la demo usa un fallback dibujado por codigo para que l
 - Ajustar tamano exacto de Simon contra los sprites finales.
 - Crear mas animaciones suaves para respirar, mirar y cantar.
 - Mantener esta fase sin logica de Simon Says.
+
+## Servicio systemd
+
+La demo puede arrancar automaticamente con:
+
+```sh
+cd ~/sprunkies
+sudo ./scripts/install_demo_service.sh
+```
+
+Esto instala `config/sprunkies-demo.service` en `/etc/systemd/system/`, habilita el servicio y lo arranca. El servicio corre como usuario `pi`, usa `DISPLAY=:0` y espera unos segundos despues de `lightdm` para que el escritorio este disponible.
+
+Para detenerlo y quitarlo del arranque:
+
+```sh
+cd ~/sprunkies
+sudo ./scripts/stop_demo_service.sh
+```
