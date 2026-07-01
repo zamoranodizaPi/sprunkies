@@ -81,8 +81,7 @@ class SimonFieldScene:
     def _play_sing_sound(self) -> float:
         if config.SOUND_PLAYER == "aplay":
             try:
-                if self.sound_process is not None and self.sound_process.poll() is None:
-                    self.sound_process.terminate()
+                self._cleanup_sound_process(stop=True)
                 self.sound_process = subprocess.Popen(
                     ["aplay", "-q", "-D", config.APLAY_DEVICE, str(config.SIMON_SOUND)],
                     stdout=subprocess.DEVNULL,
@@ -112,6 +111,7 @@ class SimonFieldScene:
             return 1.8
 
     def _update(self, dt: float) -> None:
+        self._cleanup_sound_process()
         now = time.monotonic()
         if self.mode in ("sing", "happy") and now >= self.mode_until:
             self.mode = "idle"
@@ -213,3 +213,12 @@ class SimonFieldScene:
     @staticmethod
     def _schedule_blink() -> float:
         return time.monotonic() + random.uniform(2.5, 5.0)
+
+    def _cleanup_sound_process(self, stop: bool = False) -> None:
+        if self.sound_process is None:
+            return
+        if stop and self.sound_process.poll() is None:
+            self.sound_process.terminate()
+        if self.sound_process.poll() is not None:
+            self.sound_process.wait()
+            self.sound_process = None
