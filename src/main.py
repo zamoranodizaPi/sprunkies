@@ -18,7 +18,7 @@ def init_audio() -> None:
     pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=1024)
     device = os.environ.get("SPRUNKIES_AUDIO_DEVICE")
     try:
-        if device:
+        if device and not device.startswith(("hw:", "plughw:", "default")):
             pygame.mixer.init(devicename=device)
         else:
             pygame.mixer.init()
