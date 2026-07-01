@@ -1,0 +1,6 @@
+.agents/
+
+# Local editor and OS noise
+.DS_Store
+Thumbs.db
+
