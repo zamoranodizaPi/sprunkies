@@ -40,9 +40,9 @@ else
 fi
 
 section "Calibration notes"
-printf 'If touch is rotated or inverted, record:\n'
-printf '- screen orientation and resolution\n'
-printf '- exact xinput device name\n'
-printf '- evtest min/max X and Y values\n'
-printf '- whether X/Y are swapped\n'
-printf '- whether X or Y are inverted\n'
+printf '%s\n' 'If touch is rotated or inverted, record:'
+printf '%s\n' '- screen orientation and resolution'
+printf '%s\n' '- exact xinput device name'
+printf '%s\n' '- evtest min/max X and Y values'
+printf '%s\n' '- whether X/Y are swapped'
+printf '%s\n' '- whether X or Y are inverted'
