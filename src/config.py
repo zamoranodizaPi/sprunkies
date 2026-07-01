@@ -22,6 +22,8 @@ SIMON_DIR = SPRITES_DIR / "simon"
 SIMON_SOUND = SOUNDS_DIR / "simon_sing_lalala.wav"
 
 WINDOW_TITLE = "sprunkies - Simon"
+SOUND_PLAYER = os.environ.get("SPRUNKIES_SOUND_PLAYER", "pygame").lower()
+APLAY_DEVICE = os.environ.get("SPRUNKIES_APLAY_DEVICE", "plughw:1,0")
 
 
 def is_raspberry_pi() -> bool:

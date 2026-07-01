@@ -15,6 +15,10 @@ from scene_simon_field import SimonFieldScene
 
 
 def init_audio() -> None:
+    if config.SOUND_PLAYER == "aplay":
+        print(f"audio: using aplay device={config.APLAY_DEVICE}")
+        return
+
     pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=1024)
     device = os.environ.get("SPRUNKIES_AUDIO_DEVICE")
     try:

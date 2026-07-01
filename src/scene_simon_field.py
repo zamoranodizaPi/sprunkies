@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import math
+import subprocess
 import random
 import time
+import wave
 from dataclasses import dataclass
 
 import pygame
@@ -34,6 +36,7 @@ class SimonFieldScene:
         self.next_blink = self._schedule_blink()
         self.next_auto_song = time.monotonic() + 4.0
         self.notes: list[Note] = []
+        self.sound_process: subprocess.Popen[bytes] | None = None
         self.clouds = [
             {"x": 36.0, "y": 48.0, "speed": 8.0, "scale": 1.0, "asset": 0},
             {"x": 300.0, "y": 76.0, "speed": 5.0, "scale": 0.78, "asset": 1},
@@ -71,16 +74,42 @@ class SimonFieldScene:
     def _start_singing(self) -> None:
         now = time.monotonic()
         self.mode = "sing"
-        self.mode_until = now + 1.8
-        if self.assets.sing_sound is not None:
-            try:
-                self.assets.sing_sound.set_volume(1.0)
-                self.assets.sing_sound.play()
-                self.mode_until = now + max(1.2, self.assets.sing_sound.get_length())
-            except pygame.error as exc:
-                print(f"warning: could not play Simon sound: {exc}")
+        self.mode_until = now + max(1.8, self._play_sing_sound())
         self.next_auto_song = self.mode_until + random.uniform(5.0, 8.0)
         self._spawn_notes(self.simon_rect.centerx, self.simon_rect.top + 40, count=6)
+
+    def _play_sing_sound(self) -> float:
+        if config.SOUND_PLAYER == "aplay":
+            try:
+                if self.sound_process is not None and self.sound_process.poll() is None:
+                    self.sound_process.terminate()
+                self.sound_process = subprocess.Popen(
+                    ["aplay", "-q", "-D", config.APLAY_DEVICE, str(config.SIMON_SOUND)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                return self._wav_length(config.SIMON_SOUND)
+            except OSError as exc:
+                print(f"warning: could not play Simon sound with aplay: {exc}")
+                return 1.8
+
+        if self.assets.sing_sound is None:
+            return 1.8
+        try:
+            self.assets.sing_sound.set_volume(1.0)
+            self.assets.sing_sound.play()
+            return self.assets.sing_sound.get_length()
+        except pygame.error as exc:
+            print(f"warning: could not play Simon sound: {exc}")
+            return 1.8
+
+    @staticmethod
+    def _wav_length(path: object) -> float:
+        try:
+            with wave.open(str(path), "rb") as handle:
+                return handle.getnframes() / float(handle.getframerate())
+        except (OSError, wave.Error, ZeroDivisionError):
+            return 1.8
 
     def _update(self, dt: float) -> None:
         now = time.monotonic()

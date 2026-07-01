@@ -18,6 +18,8 @@ Environment=SDL_AUDIODRIVER=alsa
 Environment=AUDIODEV=plughw:1,0
 Environment=ALSA_CARD=Headphones
 Environment=SPRUNKIES_AUDIO_DEVICE=plughw:1,0
+Environment=SPRUNKIES_SOUND_PLAYER=aplay
+Environment=SPRUNKIES_APLAY_DEVICE=plughw:1,0
 ExecStartPre=/bin/sleep 5
 ExecStart=/home/pi/sprunkies/scripts/run_demo.sh
 Restart=on-failure
