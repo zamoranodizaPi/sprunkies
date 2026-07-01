@@ -32,13 +32,14 @@ class SimonFieldScene:
         self.mode = "idle"
         self.mode_until = 0.0
         self.next_blink = self._schedule_blink()
+        self.next_auto_song = time.monotonic() + 4.0
         self.notes: list[Note] = []
         self.clouds = [
             {"x": 36.0, "y": 48.0, "speed": 8.0, "scale": 1.0, "asset": 0},
             {"x": 300.0, "y": 76.0, "speed": 5.0, "scale": 0.78, "asset": 1},
         ]
         self.font = pygame.font.Font(None, 30)
-        self.simon_rect = self.assets.simon_frames["idle"].get_rect()
+        self.simon_rect = self.assets.simon_frames["idle"][0].get_rect()
         self.simon_rect.midbottom = (config.WIDTH // 2, config.HEIGHT - 18)
 
     def run(self) -> None:
@@ -73,10 +74,12 @@ class SimonFieldScene:
         self.mode_until = now + 1.8
         if self.assets.sing_sound is not None:
             try:
+                self.assets.sing_sound.set_volume(1.0)
                 self.assets.sing_sound.play()
                 self.mode_until = now + max(1.2, self.assets.sing_sound.get_length())
             except pygame.error as exc:
                 print(f"warning: could not play Simon sound: {exc}")
+        self.next_auto_song = self.mode_until + random.uniform(5.0, 8.0)
         self._spawn_notes(self.simon_rect.centerx, self.simon_rect.top + 40, count=6)
 
     def _update(self, dt: float) -> None:
@@ -93,6 +96,8 @@ class SimonFieldScene:
 
         if self.mode == "sing" and random.random() < 0.18:
             self._spawn_notes(self.simon_rect.centerx + random.randint(-28, 28), self.simon_rect.top + 44, count=1)
+        elif self.mode == "idle" and now >= self.next_auto_song:
+            self._start_singing()
 
         for cloud in self.clouds:
             cloud["x"] += cloud["speed"] * dt
@@ -127,14 +132,19 @@ class SimonFieldScene:
                 self.screen.blit(text, (int(note.x), int(note.y)))
 
     def _current_simon_frame(self) -> pygame.Surface:
+        now = time.monotonic()
         if self.mode == "blink":
-            return self.assets.simon_frames["blink"]
+            return self._animated_frame("blink", now, 8)
         if self.mode == "happy":
-            return self.assets.simon_frames["happy"]
+            return self._animated_frame("happy", now, 6)
         if self.mode == "sing":
             phase = int(time.monotonic() * 8) % 2
-            return self.assets.simon_frames["sing1" if phase == 0 else "sing2"]
-        return self.assets.simon_frames["idle"]
+            return self._animated_frame("sing1" if phase == 0 else "sing2", now, 8)
+        return self._animated_frame("idle", now, 3)
+
+    def _animated_frame(self, key: str, now: float, fps: int) -> pygame.Surface:
+        frames = self.assets.simon_frames[key]
+        return frames[int(now * fps) % len(frames)]
 
     def _draw_cloud(self, x: int, y: int, scale: float, asset_index: int) -> None:
         if self.assets.clouds:

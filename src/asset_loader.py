@@ -57,13 +57,14 @@ class Assets:
             return pygame.transform.smoothscale(image, (config.WIDTH, config.HEIGHT))
         return self._fallback_background()
 
-    def _load_simon_frames(self) -> dict[str, pygame.Surface]:
-        frames: dict[str, pygame.Surface] = {}
+    def _load_simon_frames(self) -> dict[str, list[pygame.Surface]]:
+        frames: dict[str, list[pygame.Surface]] = {}
         for key in FRAME_KEYS:
-            frames[key] = self._find_simon_frame(key) or self._fallback_simon(key)
+            found = self._find_simon_frames(key)
+            frames[key] = found if found else [self._fallback_simon(key)]
         return frames
 
-    def _find_simon_frame(self, key: str) -> pygame.Surface | None:
+    def _find_simon_frames(self, key: str) -> list[pygame.Surface]:
         candidates = [
             config.SIMON_DIR / f"{key}.png",
             config.SIMON_DIR / f"simon_{key}.png",
@@ -74,11 +75,16 @@ class Assets:
         ]
         candidates.extend(sorted(config.SIMON_DIR.glob(f"{key}_*.png")))
         candidates.extend(sorted(config.SIMON_DIR.glob(f"simon_{key}_*.png")))
+        frames: list[pygame.Surface] = []
+        seen: set[Path] = set()
         for path in candidates:
+            if path in seen:
+                continue
+            seen.add(path)
             image = self._load_image(path)
             if image is not None:
-                return scale_sprite(image)
-        return None
+                frames.append(scale_sprite(image))
+        return frames
 
     def _load_clouds(self) -> list[pygame.Surface]:
         clouds: list[pygame.Surface] = []

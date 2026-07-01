@@ -14,6 +14,10 @@ Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/pi/.Xauthority
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=SDL_VIDEODRIVER=x11
+Environment=SDL_AUDIODRIVER=alsa
+Environment=AUDIODEV=plughw:1,0
+Environment=ALSA_CARD=Headphones
+Environment=SPRUNKIES_AUDIO_DEVICE=plughw:1,0
 ExecStartPre=/bin/sleep 5
 ExecStart=/home/pi/sprunkies/scripts/run_demo.sh
 Restart=on-failure
