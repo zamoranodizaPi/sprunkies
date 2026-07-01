@@ -1,0 +1,40 @@
+"""Configuration for the sprunkies visual demo."""
+
+from __future__ import annotations
+
+import os
+import platform
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ASSETS_DIR = PROJECT_ROOT / "assets"
+IMAGES_DIR = ASSETS_DIR / "images"
+SPRITES_DIR = ASSETS_DIR / "sprites"
+SOUNDS_DIR = ASSETS_DIR / "sounds"
+
+WIDTH = 480
+HEIGHT = 320
+FPS = 30
+
+FIELD_IMAGE = IMAGES_DIR / "field_day_480x320.png"
+SIMON_DIR = SPRITES_DIR / "simon"
+SIMON_SOUND = SOUNDS_DIR / "simon_sing_lalala.wav"
+
+WINDOW_TITLE = "sprunkies - Simon"
+
+
+def is_raspberry_pi() -> bool:
+    model_path = Path("/proc/device-tree/model")
+    try:
+        return "raspberry pi" in model_path.read_text(errors="ignore").lower()
+    except OSError:
+        return platform.machine().startswith(("arm", "aarch"))
+
+
+def use_fullscreen() -> bool:
+    if os.environ.get("SPRUNKIES_WINDOWED") == "1":
+        return False
+    if os.environ.get("SPRUNKIES_FULLSCREEN") == "1":
+        return True
+    return is_raspberry_pi()

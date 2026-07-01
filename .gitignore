@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 assets/images/simon-start.png
 config/backups/*.bak
+*.zip
 
 # Local editor and OS noise
 .DS_Store

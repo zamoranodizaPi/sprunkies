@@ -1,0 +1,37 @@
+{
+  "project": "sprunkies",
+  "asset_pack": "v0.1",
+  "target_resolution": "480x320 landscape",
+  "images": {
+    "background": "assets/images/field_day_480x320.png",
+    "clouds": [
+      "assets/images/cloud_01.png",
+      "assets/images/cloud_02.png"
+    ],
+    "notes": [
+      "assets/images/music_note_1.png",
+      "assets/images/music_note_2.png",
+      "assets/images/music_note_3.png",
+      "assets/images/music_note_4.png"
+    ]
+  },
+  "simon_sprites": [
+    "assets/sprites/simon/simon_idle1.png",
+    "assets/sprites/simon/simon_idle2.png",
+    "assets/sprites/simon/simon_blink.png",
+    "assets/sprites/simon/simon_sing1.png",
+    "assets/sprites/simon/simon_sing2.png",
+    "assets/sprites/simon/simon_happy.png"
+  ],
+  "sprite_sheet": "assets/sprites/simon/simon_spritesheet.png",
+  "sounds": [
+    "assets/sounds/button_red_tom.wav",
+    "assets/sounds/button_blue_bell.wav",
+    "assets/sounds/button_yellow_la.wav",
+    "assets/sounds/button_green_pop.wav",
+    "assets/sounds/simon_sing_lalala.wav",
+    "assets/sounds/success_jingle.wav",
+    "assets/sounds/oops_soft.wav"
+  ],
+  "notes": "Original placeholder assets generated for first Raspberry Pi 3 Pygame prototype. Replace later with final art/audio if desired."
+}

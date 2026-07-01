@@ -63,3 +63,32 @@ sh scripts/set_simon_wallpaper.sh /dev/fb1
 ```
 
 Antes de modificar `/boot/firmware/config.txt`, revisar `docs/display_touch_setup.md` y hacer backup.
+
+## Demo visual v0.1
+
+Instalar dependencias en la Raspberry:
+
+```sh
+cd ~/sprunkies
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Ejecutar la demo:
+
+```sh
+cd ~/sprunkies
+./scripts/run_demo.sh
+```
+
+Debe verse un campo verde con cielo de dia, nubes lentas y Simon animado en landscape 480x320. Al tocar/clickear a Simon, canta y aparecen notas musicales. Para salir, presionar `ESC` o usar `Ctrl+C` desde la terminal.
+
+Archivos principales:
+
+- `src/main.py`
+- `src/config.py`
+- `src/asset_loader.py`
+- `src/scene_simon_field.py`
+- `scripts/run_demo.sh`
+- `docs/demo_v01.md`
