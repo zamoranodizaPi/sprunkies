@@ -10,6 +10,73 @@ Este documento registra el procedimiento inicial para preparar la pantalla TFT S
   - `ssh raspberrypi.local "uname -a"` no resolvio el host.
 - Por lo anterior, no se modifico `/boot/firmware/config.txt` todavia.
 
+## Estado aplicado en Raspberry Pi 192.168.1.120
+
+Fecha de trabajo: 2026-07-01.
+
+Detectado:
+
+- OS: Raspbian GNU/Linux 12 Bookworm.
+- Arquitectura: `armhf` / kernel `armv7l`.
+- Modelo: Raspberry Pi 3 Model B Plus Rev 1.4.
+- SPI estaba habilitado antes del driver.
+- Despues de instalar el driver de pantalla aparecieron:
+  - `/dev/fb0`
+  - `/dev/fb1`
+  - `/dev/input/event0`
+  - touch `ADS7846 Touchscreen`
+- `xinput list` detecta `ADS7846 Touchscreen` bajo Xorg.
+
+Cambios aplicados:
+
+- Se clono el proyecto en `/home/pi/sprunkies`.
+- Se creo backup de `/boot/firmware/config.txt` en:
+  - `/home/pi/sprunkies/config/backups/config.txt.20260701-150659.bak`
+- Se instalo el driver usado previamente en el proyecto de gases:
+  - repo: `https://github.com/goodtft/LCD-show.git`
+  - ruta: `/opt/LCD-show`
+  - comando: `sudo ./LCD35-show 0`
+- El instalador agrego/configuro en `/boot/firmware/config.txt`:
+
+```ini
+[all]
+hdmi_force_hotplug=1
+dtparam=i2c_arm=on
+dtparam=spi=on
+enable_uart=1
+dtoverlay=tft35a:rotate=90
+hdmi_group=2
+hdmi_mode=1
+hdmi_mode=87
+hdmi_cvt 480 320 60 6 0 0 0
+hdmi_drive=2
+```
+
+- El instalador dejo `fbcp` corriendo para copiar el framebuffer principal a la TFT.
+- Se restauro `graphical.target`, porque el instalador dejo el sistema en `multi-user.target`.
+- Se creo `/etc/X11/xorg.conf.d/10-fbdev.conf` para que Xorg use framebuffer:
+
+```conf
+Section "Device"
+    Identifier "FramebufferDevice"
+    Driver "fbdev"
+    Option "fbdev" "/dev/fb0"
+EndSection
+
+Section "Screen"
+    Identifier "FramebufferScreen"
+    Device "FramebufferDevice"
+EndSection
+```
+
+- Se ajusto LightDM porque la unidad esperaba dispositivos `/dev/dri/*`, pero el driver LCD deshabilito KMS:
+  - backup: `/etc/systemd/system/lightdm.service.sprunkies-20260701-1523.bak`
+  - unidad local: `/etc/systemd/system/lightdm.service`
+- Se ajusto `/etc/lightdm/lightdm.conf` para usar sesion `LXDE` en lugar de `LXDE-pi-x`:
+  - backup: `/etc/lightdm/lightdm.conf.sprunkies-20260701-1521.bak`
+- Se genero `assets/images/simon-start.png`.
+- Se aplico Simon como fondo de escritorio con `pcmanfm`.
+
 ## Comandos de diagnostico a ejecutar en la Raspberry Pi
 
 ```sh
@@ -152,6 +219,13 @@ sh scripts/show_simon.sh /dev/fb1
 ```
 
 Esto no arranca todavia el juego. Solo dibuja el personaje inicial en pantalla negra para validar salida visual del proyecto.
+
+Para dejarlo tambien como fondo del escritorio LXDE:
+
+```sh
+cd ~/sprunkies
+sh scripts/set_simon_wallpaper.sh /dev/fb1
+```
 
 ## Revertir cambios si algo sale mal
 

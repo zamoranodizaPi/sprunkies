@@ -55,4 +55,11 @@ cd ~/sprunkies
 sh scripts/show_simon.sh /dev/fb1
 ```
 
+Para generar la imagen de Simon y dejarla como fondo del escritorio LXDE:
+
+```sh
+cd ~/sprunkies
+sh scripts/set_simon_wallpaper.sh /dev/fb1
+```
+
 Antes de modificar `/boot/firmware/config.txt`, revisar `docs/display_touch_setup.md` y hacer backup.
