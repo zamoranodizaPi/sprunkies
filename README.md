@@ -64,7 +64,7 @@ sh scripts/set_simon_wallpaper.sh /dev/fb1
 
 Antes de modificar `/boot/firmware/config.txt`, revisar `docs/display_touch_setup.md` y hacer backup.
 
-## Demo visual v0.2 - Simon Touch Pet
+## Demo visual v0.3 - SSH Actions
 
 Instalar dependencias en la Raspberry:
 
@@ -83,6 +83,26 @@ cd ~/sprunkies
 ```
 
 Debe verse un campo verde con cielo de dia, nubes lentas y Simon animado en landscape 480x320. Al tocar/clickear a Simon, canta y aparecen notas musicales. Para salir, presionar `ESC` o usar `Ctrl+C` desde la terminal.
+
+La v0.3 agrega cinco acciones animadas con sprite sheets:
+
+- `1`: futbol.
+- `2`: baile.
+- `3`: chiste.
+- `4`: saludo.
+- `5`: dormir/despertar.
+
+Se pueden activar por teclado, por la barra touch inferior o por archivo de comando desde SSH:
+
+```sh
+echo soccer > /tmp/sprunkies_command.txt
+echo dance > /tmp/sprunkies_command.txt
+echo joke > /tmp/sprunkies_command.txt
+echo wave > /tmp/sprunkies_command.txt
+echo sleep > /tmp/sprunkies_command.txt
+```
+
+Tambien acepta `echo 1`, `echo 2`, `echo 3`, `echo 4` y `echo 5` al mismo archivo.
 
 La v0.2 convierte la demo en una mascota touch sencilla:
 
@@ -115,7 +135,11 @@ Archivos principales:
 - `src/scene_simon_field.py`
 - `src/simon_pet.py`
 - `src/effects.py`
+- `src/action_controller.py`
+- `src/command_watcher.py`
+- `src/sprite_sheet.py`
 - `scripts/run_demo.sh`
+- `docs/demo_v03_ssh_actions.md`
 - `docs/demo_v02_touch_pet.md`
 
 ## Arranque automatico

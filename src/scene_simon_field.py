@@ -12,9 +12,22 @@ from pathlib import Path
 import pygame
 
 import config
+from action_controller import ActionController
 from asset_loader import Assets
+from command_watcher import CommandWatcher
 from effects import Effects
 from simon_pet import SimonPet
+
+
+ACTION_BAR_TOP = 270
+SIMON_BOTTOM = ACTION_BAR_TOP - 4
+ACTION_BUTTONS = (
+    ("soccer", "1 Futbol"),
+    ("dance", "2 Baila"),
+    ("joke", "3 Chiste"),
+    ("wave", "4 Hola"),
+    ("sleep", "5 Dormir"),
+)
 
 
 class SimonFieldScene:
@@ -25,6 +38,8 @@ class SimonFieldScene:
         self.started_at = time.monotonic()
         self.next_blink = self._schedule_blink()
         self.pet = SimonPet()
+        self.actions = ActionController()
+        self.command_watcher = CommandWatcher(config.COMMAND_FILE)
         self.effects = Effects(self.assets.notes)
         self.sound_processes: list[subprocess.Popen[bytes]] = []
         self.message = ""
@@ -36,8 +51,10 @@ class SimonFieldScene:
         ]
         self.font = pygame.font.Font(None, 34)
         self.small_font = pygame.font.Font(None, 28)
+        self.button_font = pygame.font.Font(None, 22)
+        self.action_buttons = self._build_action_buttons()
         self.simon_rect = self.assets.simon_frames["idle"][0].get_rect()
-        self.simon_rect.midbottom = (config.WIDTH // 2, config.HEIGHT - 18)
+        self.simon_rect.midbottom = (config.WIDTH // 2, SIMON_BOTTOM)
 
     def run(self) -> None:
         clock = pygame.time.Clock()
@@ -67,6 +84,16 @@ class SimonFieldScene:
             self.running = False
         elif key == pygame.K_s:
             self._start_singing((self.simon_rect.centerx, self.simon_rect.top + 46))
+        elif key in (pygame.K_1, pygame.K_KP1):
+            self._start_action("soccer", now)
+        elif key in (pygame.K_2, pygame.K_KP2):
+            self._start_action("dance", now)
+        elif key in (pygame.K_3, pygame.K_KP3):
+            self._start_action("joke", now)
+        elif key in (pygame.K_4, pygame.K_KP4):
+            self._start_action("wave", now)
+        elif key in (pygame.K_5, pygame.K_KP5):
+            self._start_action("sleep", now)
         elif key == pygame.K_h:
             self._happy_head(now)
         elif key == pygame.K_d:
@@ -77,6 +104,13 @@ class SimonFieldScene:
 
     def _handle_touch(self, pos: tuple[int, int]) -> None:
         now = time.monotonic()
+        action = self._action_at(pos)
+        if action is not None:
+            self._start_action(action, now)
+            return
+        if self.actions.active():
+            return
+
         info = self.pet.touch(pos, self.simon_rect, now)
         if info.was_sleepy and info.zone in {"head", "body", "simon"}:
             self.pet.set_state("wake", now, 0.9)
@@ -119,11 +153,22 @@ class SimonFieldScene:
 
     def _start_singing(self, pos: tuple[int, int] | None = None) -> None:
         now = time.monotonic()
+        if self.actions.active():
+            self.actions.stop()
         duration = max(1.8, min(5.0, self._play_sound("main")))
         self.pet.set_state("sing", now, duration)
         note_x, note_y = pos if pos is not None else (self.simon_rect.centerx, self.simon_rect.top + 40)
         self.effects.spawn_notes(note_x, note_y, count=7)
         self._set_message("Canta!", now, 1.0)
+
+    def _start_action(self, action: str, now: float) -> None:
+        if not self.actions.start(action, now):
+            return
+        self.pet.set_state("idle", now)
+        self.message = ""
+        self.message_until = 0.0
+        self._cleanup_sound_processes(stop=True)
+        self._play_action_sound(action)
 
     def _play_sound(self, sound_name: str) -> float:
         path = self._sound_path(sound_name)
@@ -155,6 +200,35 @@ class SimonFieldScene:
             print(f"warning: could not play sound {sound_name}: {exc}")
             return 1.8
 
+    def _play_action_sound(self, action: str) -> float:
+        path = self.assets.action_sound_paths.get(action)
+        if path is None:
+            return 1.8
+
+        if config.SOUND_PLAYER == "aplay":
+            try:
+                process = subprocess.Popen(
+                    ["aplay", "-q", "-D", config.APLAY_DEVICE, str(path)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                self.sound_processes.append(process)
+                return self._wav_length(path)
+            except OSError as exc:
+                print(f"warning: could not play action sound with aplay: {exc}")
+                return 1.8
+
+        sound = self.assets.action_sounds.get(action)
+        if sound is None:
+            return 1.8
+        try:
+            sound.set_volume(1.0)
+            sound.play()
+            return sound.get_length()
+        except pygame.error as exc:
+            print(f"warning: could not play action sound {action}: {exc}")
+            return 1.8
+
     def _sound_path(self, sound_name: str) -> Path | None:
         if sound_name == "main":
             return self.assets.main_sound_path
@@ -173,6 +247,19 @@ class SimonFieldScene:
     def _update(self, dt: float) -> None:
         self._cleanup_sound_processes()
         now = time.monotonic()
+        command = self.command_watcher.poll(now)
+        if command is not None:
+            self._start_action(command, now)
+
+        self.actions.update(now)
+        if self.actions.active():
+            self.effects.update(dt)
+            for cloud in self.clouds:
+                cloud["x"] += cloud["speed"] * dt
+                if cloud["x"] > config.WIDTH + 80:
+                    cloud["x"] = -90.0
+            return
+
         self.pet.update(now)
 
         if self.pet.state == "idle" and now >= self.next_blink:
@@ -205,16 +292,23 @@ class SimonFieldScene:
         frame = self._current_simon_frame()
         bounce = self._bounce(now)
         self.simon_rect = frame.get_rect()
-        self.simon_rect.midbottom = (config.WIDTH // 2, config.HEIGHT - 18 + bounce)
+        self.simon_rect.midbottom = (config.WIDTH // 2, SIMON_BOTTOM + bounce)
         self.screen.blit(frame, self.simon_rect)
 
         if self.pet.state == "sleepy":
             self._draw_sleepy(now)
 
         self.effects.draw(self.screen)
+        self._draw_action_message(now)
         self._draw_message(now)
+        self._draw_action_bar()
 
     def _current_simon_frame(self) -> pygame.Surface:
+        if self.actions.active():
+            frames = self.assets.action_frames.get(self.actions.current, [])
+            if frames:
+                return frames[self.actions.frame_index(time.monotonic(), len(frames))]
+
         now = time.monotonic()
         state = self.pet.state
         if state in {"blink", "sleepy"}:
@@ -278,6 +372,54 @@ class SimonFieldScene:
         rect = text.get_rect(center=(config.WIDTH // 2, 32))
         self.screen.blit(shadow, rect.move(2, 2))
         self.screen.blit(text, rect)
+
+    def _draw_action_message(self, now: float) -> None:
+        if not self.actions.active():
+            return
+        message = self.actions.message(now)
+        if not message:
+            return
+        lines = [message[i : i + 28] for i in range(0, len(message), 28)]
+        for index, line in enumerate(lines[:2]):
+            text = self.small_font.render(line, True, (36, 62, 92))
+            shadow = self.small_font.render(line, True, (255, 255, 255))
+            rect = text.get_rect(center=(config.WIDTH // 2, 28 + index * 24))
+            self.screen.blit(shadow, rect.move(2, 2))
+            self.screen.blit(text, rect)
+
+    def _build_action_buttons(self) -> list[tuple[str, pygame.Rect, str]]:
+        width = config.WIDTH // len(ACTION_BUTTONS)
+        buttons: list[tuple[str, pygame.Rect, str]] = []
+        for index, (action, label) in enumerate(ACTION_BUTTONS):
+            rect = pygame.Rect(index * width, ACTION_BAR_TOP, width, config.HEIGHT - ACTION_BAR_TOP)
+            if index == len(ACTION_BUTTONS) - 1:
+                rect.width = config.WIDTH - rect.x
+            buttons.append((action, rect, label))
+        return buttons
+
+    def _action_at(self, pos: tuple[int, int]) -> str | None:
+        for action, rect, _label in self.action_buttons:
+            if rect.collidepoint(pos):
+                return action
+        return None
+
+    def _draw_action_bar(self) -> None:
+        colors = {
+            "soccer": (68, 170, 92),
+            "dance": (232, 181, 64),
+            "joke": (232, 105, 98),
+            "wave": (82, 157, 218),
+            "sleep": (126, 120, 188),
+        }
+        for action, rect, label in self.action_buttons:
+            selected = self.actions.current == action
+            color = colors[action]
+            fill = tuple(min(255, c + 35) for c in color) if selected else color
+            pygame.draw.rect(self.screen, fill, rect)
+            pygame.draw.rect(self.screen, (255, 255, 255), rect, 2)
+            text = self.button_font.render(label, True, (20, 35, 42))
+            text_rect = text.get_rect(center=rect.center)
+            self.screen.blit(text, text_rect)
 
     @staticmethod
     def _schedule_blink() -> float:

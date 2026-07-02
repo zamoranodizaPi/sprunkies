@@ -19,6 +19,8 @@ FPS = 30
 
 FIELD_IMAGE = IMAGES_DIR / "field_day_480x320.png"
 SIMON_DIR = SPRITES_DIR / "simon"
+SIMON_ACTIONS_DIR = SPRITES_DIR / "simon_actions"
+ACTIONS_SOUND_DIR = SOUNDS_DIR / "actions"
 SIMON_SOUND = SOUNDS_DIR / "touch_demo.wav"
 MAIN_SOUND_CANDIDATES = (
     SOUNDS_DIR / "simon_sing_theme.wav",
@@ -53,6 +55,39 @@ EFFECT_SOUND_CANDIDATES = {
     ),
 }
 SLEEP_AFTER_SECONDS = float(os.environ.get("SPRUNKIES_SLEEP_AFTER", "45"))
+COMMAND_FILE = Path(os.environ.get("SPRUNKIES_COMMAND_FILE", "/tmp/sprunkies_command.txt"))
+ACTION_SPECS = {
+    "soccer": {
+        "sheet": SIMON_ACTIONS_DIR / "simon_soccer_sheet.png",
+        "sound": ACTIONS_SOUND_DIR / "action_1_soccer.wav",
+        "duration": 4.0,
+        "fps": 8,
+    },
+    "dance": {
+        "sheet": SIMON_ACTIONS_DIR / "simon_dance_sheet.png",
+        "sound": ACTIONS_SOUND_DIR / "action_2_dance_loop.wav",
+        "duration": 5.0,
+        "fps": 9,
+    },
+    "joke": {
+        "sheet": SIMON_ACTIONS_DIR / "simon_joke_sheet.png",
+        "sound": ACTIONS_SOUND_DIR / "action_3_joke_laugh.wav",
+        "duration": 6.5,
+        "fps": 7,
+    },
+    "wave": {
+        "sheet": SIMON_ACTIONS_DIR / "simon_wave_sheet.png",
+        "sound": ACTIONS_SOUND_DIR / "action_4_wave_hello.wav",
+        "duration": 3.0,
+        "fps": 8,
+    },
+    "sleep": {
+        "sheet": SIMON_ACTIONS_DIR / "simon_sleep_wake_sheet.png",
+        "sound": ACTIONS_SOUND_DIR / "action_5_sleep_wake.wav",
+        "duration": 6.0,
+        "fps": 7,
+    },
+}
 
 WINDOW_TITLE = "sprunkies - Simon"
 SOUND_PLAYER = os.environ.get("SPRUNKIES_SOUND_PLAYER", "pygame").lower()

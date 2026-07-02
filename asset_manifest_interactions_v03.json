@@ -1,0 +1,26 @@
+{
+  "project": "sprunkies",
+  "pack": "interactions_v03",
+  "target": "Raspberry Pi 3, pygame-ce, 480x320 landscape",
+  "sprite_sheets": {
+    "1_soccer": "assets/sprites/simon_actions/simon_soccer_sheet.png",
+    "2_dance": "assets/sprites/simon_actions/simon_dance_sheet.png",
+    "3_joke": "assets/sprites/simon_actions/simon_joke_sheet.png",
+    "4_wave": "assets/sprites/simon_actions/simon_wave_sheet.png",
+    "5_sleep_wake": "assets/sprites/simon_actions/simon_sleep_wake_sheet.png",
+    "reference": "assets/sprites/simon_actions/simon_model_sheet.png"
+  },
+  "audio": {
+    "1_soccer": "assets/sounds/actions/action_1_soccer.wav",
+    "2_dance": "assets/sounds/actions/action_2_dance_loop.wav",
+    "3_joke": "assets/sounds/actions/action_3_joke_laugh.wav",
+    "4_wave": "assets/sounds/actions/action_4_wave_hello.wav",
+    "5_sleep_wake": "assets/sounds/actions/action_5_sleep_wake.wav"
+  },
+  "sheet_layout": {
+    "columns": 4,
+    "rows": 2,
+    "frame_count": 8,
+    "note": "Codex should auto-slice each sheet into 8 frames by dividing image width by 4 and height by 2, then crop/scale frames for 480x320 runtime."
+  }
+}

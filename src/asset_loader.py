@@ -9,6 +9,7 @@ from pathlib import Path
 import pygame
 
 import config
+from sprite_sheet import load_sprite_sheet
 
 
 FRAME_KEYS = ("idle", "blink", "sing1", "sing2", "happy")
@@ -30,6 +31,19 @@ class Assets:
         self.effect_sounds = {
             name: self._load_sound(path)
             for name, path in self.effect_sound_paths.items()
+            if path is not None
+        }
+        self.action_frames = {
+            name: load_sprite_sheet(spec["sheet"])
+            for name, spec in config.ACTION_SPECS.items()
+        }
+        self.action_sound_paths = {
+            name: spec["sound"] if spec["sound"].exists() else None
+            for name, spec in config.ACTION_SPECS.items()
+        }
+        self.action_sounds = {
+            name: self._load_sound(path)
+            for name, path in self.action_sound_paths.items()
             if path is not None
         }
         self.sing_sound = self.main_sound
