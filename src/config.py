@@ -21,6 +21,7 @@ FIELD_IMAGE = IMAGES_DIR / "field_day_480x320.png"
 SIMON_DIR = SPRITES_DIR / "simon"
 SIMON_SOUND = SOUNDS_DIR / "touch_demo.wav"
 MAIN_SOUND_CANDIDATES = (
+    SOUNDS_DIR / "simon_sing_theme.wav",
     SOUNDS_DIR / "simon_theme.wav",
     SOUNDS_DIR / "simon_signature_theme.wav",
     SOUNDS_DIR / "Square1_then_Square2_louder.wav",

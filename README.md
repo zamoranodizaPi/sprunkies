@@ -96,11 +96,12 @@ La v0.2 convierte la demo en una mascota touch sencilla:
 
 Audios para canto principal, en orden:
 
-1. `assets/sounds/simon_theme.wav`
-2. `assets/sounds/simon_signature_theme.wav`
-3. `assets/sounds/Square1_then_Square2_louder.wav`
-4. `assets/sounds/touch_demo.wav`
-5. `assets/sounds/simon_sing_lalala.wav`
+1. `assets/sounds/simon_sing_theme.wav`
+2. `assets/sounds/simon_theme.wav`
+3. `assets/sounds/simon_signature_theme.wav`
+4. `assets/sounds/Square1_then_Square2_louder.wav`
+5. `assets/sounds/touch_demo.wav`
+6. `assets/sounds/simon_sing_lalala.wav`
 
 Audios cortos opcionales para efectos: `button_red_tom.wav`, `button_blue_bell.wav`, `button_yellow_la.wav`, `button_green_pop.wav`, `success_jingle.wav`, `oops_soft.wav` y `simon_signature_motif.wav`. Si falta algun audio, la demo continua sin crashear.
 
