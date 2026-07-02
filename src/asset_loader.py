@@ -21,7 +21,20 @@ class Assets:
         self.simon_frames = self._load_simon_frames()
         self.clouds = self._load_clouds()
         self.notes = self._load_notes()
-        self.sing_sound = self._load_sound(config.SIMON_SOUND)
+        self.main_sound_path = self._first_existing(config.MAIN_SOUND_CANDIDATES)
+        self.main_sound = self._load_sound(self.main_sound_path)
+        self.effect_sound_paths = {
+            name: self._first_existing(candidates)
+            for name, candidates in config.EFFECT_SOUND_CANDIDATES.items()
+        }
+        self.effect_sounds = {
+            name: self._load_sound(path)
+            for name, path in self.effect_sound_paths.items()
+            if path is not None
+        }
+        self.sing_sound = self.main_sound
+        if self.main_sound_path is None:
+            print("warning: no Simon main audio found; demo will continue without main sound")
 
     @staticmethod
     def _load_manifest() -> dict[str, object]:
@@ -42,8 +55,15 @@ class Assets:
             return None
 
     @staticmethod
-    def _load_sound(path: Path) -> pygame.mixer.Sound | None:
-        if not path.exists() or not pygame.mixer.get_init():
+    def _first_existing(paths: tuple[Path, ...]) -> Path | None:
+        for path in paths:
+            if path.exists():
+                return path
+        return None
+
+    @staticmethod
+    def _load_sound(path: Path | None) -> pygame.mixer.Sound | None:
+        if path is None or not path.exists() or not pygame.mixer.get_init():
             return None
         try:
             return pygame.mixer.Sound(str(path))

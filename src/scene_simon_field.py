@@ -1,28 +1,20 @@
-"""Simon in a field: the first lightweight sprunkies visual demo."""
+"""Simon Touch Pet scene for the lightweight sprunkies demo."""
 
 from __future__ import annotations
 
 import math
-import subprocess
 import random
+import subprocess
 import time
 import wave
-from dataclasses import dataclass
+from pathlib import Path
 
 import pygame
 
 import config
 from asset_loader import Assets
-
-
-@dataclass
-class Note:
-    x: float
-    y: float
-    speed: float
-    life: float
-    glyph: str
-    image: pygame.Surface | None = None
+from effects import Effects
+from simon_pet import SimonPet
 
 
 class SimonFieldScene:
@@ -31,16 +23,19 @@ class SimonFieldScene:
         self.assets = assets
         self.running = True
         self.started_at = time.monotonic()
-        self.mode = "idle"
-        self.mode_until = 0.0
         self.next_blink = self._schedule_blink()
-        self.notes: list[Note] = []
-        self.sound_process: subprocess.Popen[bytes] | None = None
+        self.pet = SimonPet()
+        self.effects = Effects(self.assets.notes)
+        self.sound_processes: list[subprocess.Popen[bytes]] = []
+        self.message = ""
+        self.message_until = 0.0
+        self.cloud_highlight_until = 0.0
         self.clouds = [
             {"x": 36.0, "y": 48.0, "speed": 8.0, "scale": 1.0, "asset": 0},
             {"x": 300.0, "y": 76.0, "speed": 5.0, "scale": 0.78, "asset": 1},
         ]
-        self.font = pygame.font.Font(None, 30)
+        self.font = pygame.font.Font(None, 34)
+        self.small_font = pygame.font.Font(None, 28)
         self.simon_rect = self.assets.simon_frames["idle"][0].get_rect()
         self.simon_rect.midbottom = (config.WIDTH // 2, config.HEIGHT - 18)
 
@@ -52,52 +47,123 @@ class SimonFieldScene:
             self._update(dt)
             self._draw()
             pygame.display.flip()
+        self._cleanup_sound_processes(stop=True)
 
     def _handle_events(self) -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                self.running = False
+            elif event.type == pygame.KEYDOWN:
+                self._handle_key(event.key)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 self._handle_touch(event.pos)
+            elif event.type == pygame.FINGERDOWN:
+                pos = (int(event.x * config.WIDTH), int(event.y * config.HEIGHT))
+                self._handle_touch(pos)
+
+    def _handle_key(self, key: int) -> None:
+        now = time.monotonic()
+        if key == pygame.K_ESCAPE:
+            self.running = False
+        elif key == pygame.K_s:
+            self._start_singing((self.simon_rect.centerx, self.simon_rect.top + 46))
+        elif key == pygame.K_h:
+            self._happy_head(now)
+        elif key == pygame.K_d:
+            self._dance_body(now)
+        elif key == pygame.K_z:
+            self.pet.set_state("sleepy", now)
+            self._set_message("zzz", now, 1.5)
 
     def _handle_touch(self, pos: tuple[int, int]) -> None:
-        self._start_singing(pos)
+        now = time.monotonic()
+        info = self.pet.touch(pos, self.simon_rect, now)
+        if info.was_sleepy and info.zone in {"head", "body", "simon"}:
+            self.pet.set_state("wake", now, 0.9)
+            self.effects.spawn_stars(self.simon_rect.centerx, self.simon_rect.top + 42, 7)
+            self._set_message("Hola!", now, 1.0)
+            self._play_sound("wake")
+            return
+
+        if info.zone == "head":
+            self._happy_head(now)
+        elif info.zone == "body":
+            self._dance_body(now)
+        elif info.zone == "sky":
+            self.pet.set_state("happy", now, 1.2)
+            self.cloud_highlight_until = now + 1.2
+            self.effects.spawn_stars(pos[0], pos[1], 4)
+            self.effects.spawn_notes(pos[0], pos[1], 2)
+            self._set_message("Yupi!", now, 0.9)
+            self._play_sound("sky")
+        elif info.zone == "grass":
+            self.pet.set_state("happy", now, 1.2)
+            self.effects.spawn_flowers(pos[0], min(config.HEIGHT - 20, pos[1]), 7)
+            self._set_message("Yupi!", now, 0.9)
+            self._play_sound("grass")
+        else:
+            self._start_singing(pos)
+
+    def _happy_head(self, now: float) -> None:
+        self.pet.set_state("happy", now, 1.5)
+        self.effects.spawn_hearts(self.simon_rect.centerx, self.simon_rect.top + 42, 5)
+        self.effects.spawn_stars(self.simon_rect.centerx, self.simon_rect.top + 54, 3)
+        self._set_message("Hola!", now, 1.0)
+        self._play_sound("head")
+
+    def _dance_body(self, now: float) -> None:
+        self.pet.set_state("dance", now, 2.0)
+        self.effects.spawn_stars(self.simon_rect.centerx, self.simon_rect.centery + 25, 6)
+        self._set_message("Yupi!", now, 1.0)
+        self._play_sound("body")
 
     def _start_singing(self, pos: tuple[int, int] | None = None) -> None:
         now = time.monotonic()
-        self.mode = "sing"
-        self.mode_until = now + max(1.8, self._play_sing_sound())
+        duration = max(1.8, min(5.0, self._play_sound("main")))
+        self.pet.set_state("sing", now, duration)
         note_x, note_y = pos if pos is not None else (self.simon_rect.centerx, self.simon_rect.top + 40)
-        self._spawn_notes(note_x, note_y, count=6)
+        self.effects.spawn_notes(note_x, note_y, count=7)
+        self._set_message("Canta!", now, 1.0)
 
-    def _play_sing_sound(self) -> float:
+    def _play_sound(self, sound_name: str) -> float:
+        path = self._sound_path(sound_name)
+        if path is None:
+            return 1.8
+
         if config.SOUND_PLAYER == "aplay":
             try:
-                self._cleanup_sound_process(stop=True)
-                self.sound_process = subprocess.Popen(
-                    ["aplay", "-q", "-D", config.APLAY_DEVICE, str(config.SIMON_SOUND)],
+                self._cleanup_sound_processes(stop=True)
+                process = subprocess.Popen(
+                    ["aplay", "-q", "-D", config.APLAY_DEVICE, str(path)],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-                return self._wav_length(config.SIMON_SOUND)
+                self.sound_processes.append(process)
+                return self._wav_length(path)
             except OSError as exc:
-                print(f"warning: could not play Simon sound with aplay: {exc}")
+                print(f"warning: could not play sound with aplay: {exc}")
                 return 1.8
 
-        if self.assets.sing_sound is None:
+        sound = self.assets.main_sound if sound_name == "main" else self.assets.effect_sounds.get(sound_name)
+        if sound is None:
             return 1.8
         try:
-            self.assets.sing_sound.set_volume(1.0)
-            self.assets.sing_sound.play()
-            return self.assets.sing_sound.get_length()
+            sound.set_volume(1.0)
+            sound.play()
+            return sound.get_length()
         except pygame.error as exc:
-            print(f"warning: could not play Simon sound: {exc}")
+            print(f"warning: could not play sound {sound_name}: {exc}")
             return 1.8
 
+    def _sound_path(self, sound_name: str) -> Path | None:
+        if sound_name == "main":
+            return self.assets.main_sound_path
+        if sound_name == "wake" and self.assets.effect_sound_paths.get("wake") is None:
+            return self.assets.main_sound_path
+        return self.assets.effect_sound_paths.get(sound_name)
+
     @staticmethod
-    def _wav_length(path: object) -> float:
+    def _wav_length(path: Path) -> float:
         try:
             with wave.open(str(path), "rb") as handle:
                 return handle.getnframes() / float(handle.getframerate())
@@ -105,112 +171,125 @@ class SimonFieldScene:
             return 1.8
 
     def _update(self, dt: float) -> None:
-        self._cleanup_sound_process()
+        self._cleanup_sound_processes()
         now = time.monotonic()
-        if self.mode in ("sing", "happy") and now >= self.mode_until:
-            self.mode = "idle"
+        self.pet.update(now)
 
-        if self.mode == "idle" and now >= self.next_blink:
-            self.mode = "blink"
-            self.mode_until = now + 0.14
+        if self.pet.state == "idle" and now >= self.next_blink:
+            self.pet.set_state("blink", now, 0.14)
             self.next_blink = self._schedule_blink()
-        elif self.mode == "blink" and now >= self.mode_until:
-            self.mode = "idle"
 
-        if self.mode == "sing" and random.random() < 0.18:
-            self._spawn_notes(self.simon_rect.centerx + random.randint(-28, 28), self.simon_rect.top + 44, count=1)
+        if self.pet.state == "sing" and random.random() < 0.18:
+            self.effects.spawn_notes(self.simon_rect.centerx + random.randint(-30, 30), self.simon_rect.top + 46, 1)
 
         for cloud in self.clouds:
-            cloud["x"] += cloud["speed"] * dt
+            speed = cloud["speed"] * (2.2 if now < self.cloud_highlight_until else 1.0)
+            cloud["x"] += speed * dt
             if cloud["x"] > config.WIDTH + 80:
                 cloud["x"] = -90.0
 
-        for note in self.notes:
-            note.y -= note.speed * dt
-            note.life -= dt
-        self.notes = [note for note in self.notes if note.life > 0 and note.y > -20]
+        self.effects.update(dt)
 
     def _draw(self) -> None:
         self.screen.blit(self.assets.background, (0, 0))
+        now = time.monotonic()
         for cloud in self.clouds:
-            self._draw_cloud(int(cloud["x"]), int(cloud["y"]), cloud["scale"], int(cloud["asset"]))
+            self._draw_cloud(
+                int(cloud["x"]),
+                int(cloud["y"]),
+                float(cloud["scale"]),
+                int(cloud["asset"]),
+                now < self.cloud_highlight_until,
+            )
 
         frame = self._current_simon_frame()
-        bounce = int(math.sin((time.monotonic() - self.started_at) * 4.2) * 4)
+        bounce = self._bounce(now)
         self.simon_rect = frame.get_rect()
         self.simon_rect.midbottom = (config.WIDTH // 2, config.HEIGHT - 18 + bounce)
         self.screen.blit(frame, self.simon_rect)
 
-        for note in self.notes:
-            alpha = max(40, min(255, int(note.life * 180)))
-            if note.image is not None:
-                image = note.image.copy()
-                image.set_alpha(alpha)
-                self.screen.blit(image, (int(note.x), int(note.y)))
-            else:
-                text = self.font.render(note.glyph, True, (120, 55, 190))
-                text.set_alpha(alpha)
-                self.screen.blit(text, (int(note.x), int(note.y)))
+        if self.pet.state == "sleepy":
+            self._draw_sleepy(now)
+
+        self.effects.draw(self.screen)
+        self._draw_message(now)
 
     def _current_simon_frame(self) -> pygame.Surface:
         now = time.monotonic()
-        if self.mode == "blink":
-            return self._animated_frame("blink", now, 8)
-        if self.mode == "happy":
+        state = self.pet.state
+        if state in {"blink", "sleepy"}:
+            return self._animated_frame("blink", now, 4)
+        if state in {"happy", "wake"}:
             return self._animated_frame("happy", now, 6)
-        if self.mode == "sing":
-            phase = int(time.monotonic() * 8) % 2
+        if state == "sing":
+            phase = int(now * 8) % 2
             return self._animated_frame("sing1" if phase == 0 else "sing2", now, 8)
+        if state == "dance":
+            key = "happy" if int(now * 6) % 2 == 0 else "idle"
+            return self._animated_frame(key, now, 6)
         return self._animated_frame("idle", now, 3)
 
     def _animated_frame(self, key: str, now: float, fps: int) -> pygame.Surface:
         frames = self.assets.simon_frames[key]
         return frames[int(now * fps) % len(frames)]
 
-    def _draw_cloud(self, x: int, y: int, scale: float, asset_index: int) -> None:
+    def _bounce(self, now: float) -> int:
+        elapsed = now - self.started_at
+        if self.pet.state == "dance":
+            return int(math.sin(elapsed * 10.0) * 12)
+        if self.pet.state == "sleepy":
+            return int(math.sin(elapsed * 1.2) * 1)
+        if self.pet.state == "wake":
+            return int(math.sin(elapsed * 8.0) * 7)
+        return int(math.sin(elapsed * 4.2) * 4)
+
+    def _draw_cloud(self, x: int, y: int, scale: float, asset_index: int, highlighted: bool) -> None:
         if self.assets.clouds:
             cloud = self.assets.clouds[asset_index % len(self.assets.clouds)]
             if scale != 1.0:
                 size = cloud.get_size()
                 cloud = pygame.transform.smoothscale(cloud, (int(size[0] * scale), int(size[1] * scale)))
             self.screen.blit(cloud, (x, y))
+            if highlighted:
+                rect = cloud.get_rect(topleft=(x, y)).inflate(8, 5)
+                pygame.draw.ellipse(self.screen, (255, 242, 132), rect, 3)
             return
 
-        color = (255, 255, 255)
-        shade = (224, 242, 250)
-        parts = [
-            (0, 16, 34, 18),
-            (24, 6, 40, 26),
-            (58, 14, 34, 18),
-        ]
-        for px, py, w, h in parts:
+        shade = (255, 242, 132) if highlighted else (224, 242, 250)
+        for px, py, w, h in ((0, 16, 34, 18), (24, 6, 40, 26), (58, 14, 34, 18)):
             rect = pygame.Rect(x + int(px * scale), y + int(py * scale), int(w * scale), int(h * scale))
             pygame.draw.ellipse(self.screen, shade, rect.move(0, 3))
-            pygame.draw.ellipse(self.screen, color, rect)
+            pygame.draw.ellipse(self.screen, (255, 255, 255), rect)
 
-    def _spawn_notes(self, x: int, y: int, count: int) -> None:
-        glyphs = ["♪", "♫"]
-        for index in range(count):
-            self.notes.append(
-                Note(
-                    x=x + random.randint(-36, 36),
-                    y=y + index * 4,
-                    speed=random.uniform(28, 52),
-                    life=random.uniform(1.0, 1.8),
-                    glyph=random.choice(glyphs),
-                    image=random.choice(self.assets.notes) if self.assets.notes else None,
-                )
-            )
+    def _draw_sleepy(self, now: float) -> None:
+        if int(now * 2) % 2 == 0:
+            text = self.small_font.render("zzz", True, (80, 82, 120))
+            self.screen.blit(text, (self.simon_rect.right - 16, max(18, self.simon_rect.top - 14)))
+
+    def _set_message(self, text: str, now: float, duration: float) -> None:
+        self.message = text
+        self.message_until = now + duration
+
+    def _draw_message(self, now: float) -> None:
+        if not self.message or now >= self.message_until:
+            return
+        text = self.font.render(self.message, True, (36, 62, 92))
+        shadow = self.font.render(self.message, True, (255, 255, 255))
+        rect = text.get_rect(center=(config.WIDTH // 2, 32))
+        self.screen.blit(shadow, rect.move(2, 2))
+        self.screen.blit(text, rect)
 
     @staticmethod
     def _schedule_blink() -> float:
         return time.monotonic() + random.uniform(2.5, 5.0)
 
-    def _cleanup_sound_process(self, stop: bool = False) -> None:
-        if self.sound_process is None:
-            return
-        if stop and self.sound_process.poll() is None:
-            self.sound_process.terminate()
-        if self.sound_process.poll() is not None:
-            self.sound_process.wait()
-            self.sound_process = None
+    def _cleanup_sound_processes(self, stop: bool = False) -> None:
+        alive: list[subprocess.Popen[bytes]] = []
+        for process in self.sound_processes:
+            if stop and process.poll() is None:
+                process.terminate()
+            if process.poll() is None:
+                alive.append(process)
+            else:
+                process.wait()
+        self.sound_processes = alive

@@ -20,6 +20,38 @@ FPS = 30
 FIELD_IMAGE = IMAGES_DIR / "field_day_480x320.png"
 SIMON_DIR = SPRITES_DIR / "simon"
 SIMON_SOUND = SOUNDS_DIR / "touch_demo.wav"
+MAIN_SOUND_CANDIDATES = (
+    SOUNDS_DIR / "simon_theme.wav",
+    SOUNDS_DIR / "simon_signature_theme.wav",
+    SOUNDS_DIR / "Square1_then_Square2_louder.wav",
+    SOUNDS_DIR / "touch_demo.wav",
+    SOUNDS_DIR / "simon_sing_lalala.wav",
+)
+EFFECT_SOUND_CANDIDATES = {
+    "head": (
+        SOUNDS_DIR / "success_jingle.wav",
+        SOUNDS_DIR / "button_blue_bell.wav",
+        SOUNDS_DIR / "button_yellow_la.wav",
+    ),
+    "body": (
+        SOUNDS_DIR / "button_red_tom.wav",
+        SOUNDS_DIR / "button_green_pop.wav",
+        SOUNDS_DIR / "button_yellow_la.wav",
+    ),
+    "sky": (
+        SOUNDS_DIR / "button_blue_bell.wav",
+        SOUNDS_DIR / "oops_soft.wav",
+    ),
+    "grass": (
+        SOUNDS_DIR / "button_green_pop.wav",
+        SOUNDS_DIR / "button_yellow_la.wav",
+    ),
+    "wake": (
+        SOUNDS_DIR / "simon_signature_motif.wav",
+        SOUNDS_DIR / "success_jingle.wav",
+    ),
+}
+SLEEP_AFTER_SECONDS = float(os.environ.get("SPRUNKIES_SLEEP_AFTER", "45"))
 
 WINDOW_TITLE = "sprunkies - Simon"
 SOUND_PLAYER = os.environ.get("SPRUNKIES_SOUND_PLAYER", "pygame").lower()
