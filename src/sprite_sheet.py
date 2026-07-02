@@ -32,7 +32,8 @@ def load_sprite_sheet(
     for row in range(rows):
         for col in range(cols):
             rect = pygame.Rect(col * frame_width, row * frame_height, frame_width, frame_height)
-            frame = pygame.Surface((frame_width, frame_height), pygame.SRCALPHA)
+            frame = pygame.Surface((frame_width, frame_height)).convert()
+            frame.set_colorkey((255, 255, 255))
             frame.blit(sheet, (0, 0), rect)
             frames.append(scale_frame(frame, max_width, max_height))
 
@@ -43,4 +44,6 @@ def scale_frame(frame: pygame.Surface, max_width: int, max_height: int) -> pygam
     width, height = frame.get_size()
     factor = min(max_width / max(1, width), max_height / max(1, height), 1.5)
     size = (max(1, int(width * factor)), max(1, int(height * factor)))
-    return pygame.transform.smoothscale(frame, size)
+    scaled = pygame.transform.scale(frame, size)
+    scaled.set_colorkey((255, 255, 255))
+    return scaled
